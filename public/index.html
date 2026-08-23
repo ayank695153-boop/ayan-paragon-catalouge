@@ -18,7 +18,10 @@ async function api(path,opts){
   try{d=await r.json()}catch{}
   if(!r.ok)throw Object.assign(new Error(d.error||'Request failed'),{code:d.error});
   return d
-}let d={};try{d=await r.json()}catch{};if(!r.ok)throw Object.assign(new Error(d.error||'Request failed'),{code:d.error});return d}
+}return d
+}
+
+async function validateSaved(){
 async function validateSaved(){const k=localStorage.getItem(KEY);if(!k)return showLock();try{const d=await api('/api/license/validate',{method:'POST',body:JSON.stringify({key:k,deviceId:device})});showApp(d.license)}catch(e){localStorage.removeItem(KEY);showLock('Licence required / '+e.message,true)}}
 $('activate').onclick=async()=>{const k=$('key').value.trim();if(!k)return showLock('Please enter your licence key.',true);$('activate').disabled=true;showLock('Checking licence…');try{const d=await api('/api/license/activate',{method:'POST',body:JSON.stringify({key:k,deviceId:device})});localStorage.setItem(KEY,k.toUpperCase());showApp(d.license);$('search').focus()}catch(e){showLock(e.message.replaceAll('_',' '),true)}finally{$('activate').disabled=false}};
 $('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('activate').click()});
