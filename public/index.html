@@ -1,31 +1,1031 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1020"><title>Ayan Product Catalogue</title><style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b1020;color:#f6f7fb}.wrap{max-width:760px;margin:auto;padding:22px 16px 40px}.brand{font-size:27px;font-weight:800;letter-spacing:-.5px}.sub{color:#9aa4bd;margin-top:5px}.card{background:#121a2c;border:1px solid #26314b;border-radius:22px;padding:18px;margin-top:18px;box-shadow:0 12px 35px rgba(0,0,0,.22)}input,button{width:100%;height:54px;border-radius:14px;border:1px solid #34415e;background:#0d1424;color:#fff;font-size:17px;padding:0 16px}button{background:#2f6df6;border:0;font-weight:800;cursor:pointer}.secondary{background:#1b253b}.hidden{display:none}.status{text-align:center;margin-top:13px;color:#aab5ce;min-height:22px}.ok{color:#55d88a}.err{color:#ff7777}.search{font-size:22px;height:60px}.result{margin-top:12px;padding:15px;border:1px solid #2b3854;background:#0f1729;border-radius:16px;display:flex;justify-content:space-between;gap:12px;align-items:center}.meta{color:#9da8bf;font-size:13px;margin-top:4px}.open{width:auto;min-width:125px;height:44px;padding:0 14px}.top{display:flex;justify-content:space-between;align-items:center}.pill{font-size:12px;color:#75a1ff;border:1px solid #31549b;border-radius:999px;padding:7px 10px}.hint{color:#7f8aa2;font-size:13px;margin-top:10px}.pdfbox{position:fixed;inset:0;background:rgba(4,7,14,.94);z-index:20;padding:10px;display:none}.pdfbox iframe{width:100%;height:calc(100% - 60px);border:0;border-radius:14px;background:#fff}.close{height:44px;margin-bottom:8px;background:#1e2a42}.empty{text-align:center;color:#9aa4bd;padding:30px 10px}.lock{max-width:480px;margin:90px auto 0}.logo{font-weight:900;font-size:34px}.note{font-size:14px;line-height:1.5;color:#8e99b0}
-</style></head><body><main class="wrap"><section id="lock" class="lock"><div class="logo">Ayan Product Catalogue</div><div class="sub">Paragon • April 2026</div><div class="card"><h2>Enter licence key</h2><p class="note">A valid licence is required before the catalogue can be opened.</p><input id="key" autocomplete="off" placeholder="Enter licence key"><button id="activate" style="margin-top:12px">Unlock Catalogue</button><div id="lockStatus" class="status"></div></div></section>
-<section id="app" class="hidden"><div class="top"><div><div class="brand">Ayan Product Catalogue</div><div class="sub">Paragon • April 2026</div></div><div class="pill" id="licencePill">Licensed</div></div><div class="card"><input id="search" class="search" inputmode="text" autocomplete="off" placeholder="Search Article No. e.g. 2734"><div class="hint">Article number search → exact catalogue page</div><div id="results"></div></div></section></main>
-<div id="pdfbox" class="pdfbox"><button class="close" id="close">← Back to search</button><iframe id="pdf"></iframe></div>
-<script>
-const $=id=>document.getElementById(id); const KEY='ayan_catalogue_key_v1', DEVICE='ayan_catalogue_device_v1';
-let device=localStorage.getItem(DEVICE); if(!device){device=crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random();localStorage.setItem(DEVICE,device)}
-function showLock(msg='',err=false){$('lock').classList.remove('hidden');$('app').classList.add('hidden');$('lockStatus').textContent=msg;$('lockStatus').className='status '+(err?'err':'')}
-function showApp(lic){$('lock').classList.add('hidden');$('app').classList.remove('hidden');$('licencePill').textContent=lic.expiresAt?'Licensed':'Licensed';}const API_BASE='https://ayan-license-server.onrender.com';
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
 
-async function api(path,opts){
-  const r=await fetch(API_BASE+path,{
-    headers:{'Content-Type':'application/json'},
-    ...opts
-  });
-  let d={};
-  try{d=await r.json()}catch{}
-  if(!r.ok)throw Object.assign(new Error(d.error||'Request failed'),{code:d.error});
-  return d
+<title>Ayan Product Catalogue</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background:#0b1020;
+  color:#f6f7fb;
+}
+
+.wrap{
+  max-width:760px;
+  margin:auto;
+  padding:22px 16px 40px;
+}
+
+.brand{
+  font-size:27px;
+  font-weight:800;
+  letter-spacing:-.5px;
+}
+
+.sub{
+  color:#9aa4bd;
+  margin-top:5px;
+}
+
+.card{
+  background:#121a2c;
+  border:1px solid #26314b;
+  border-radius:22px;
+  padding:18px;
+  margin-top:18px;
+  box-shadow:0 12px 35px rgba(0,0,0,.22);
+}
+
+input,
+button{
+  width:100%;
+  height:54px;
+  border-radius:14px;
+  border:1px solid #34415e;
+  background:#0d1424;
+  color:#fff;
+  font-size:17px;
+  padding:0 16px;
+}
+
+button{
+  background:#2f6df6;
+  border:0;
+  font-weight:800;
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.hidden{
+  display:none;
+}
+
+.status{
+  text-align:center;
+  margin-top:13px;
+  color:#aab5ce;
+  min-height:22px;
+}
+
+.ok{
+  color:#55d88a;
+}
+
+.err{
+  color:#ff7777;
+}
+
+.search{
+  font-size:22px;
+  height:60px;
+}
+
+.result{
+  margin-top:12px;
+  padding:15px;
+  border:1px solid #2b3854;
+  background:#0f1729;
+  border-radius:16px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+
+.meta{
+  color:#9da8bf;
+  font-size:13px;
+  margin-top:4px;
+}
+
+.open{
+  width:auto;
+  min-width:125px;
+  height:44px;
+  padding:0 14px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.pill{
+  font-size:12px;
+  color:#75a1ff;
+  border:1px solid #31549b;
+  border-radius:999px;
+  padding:7px 10px;
+  white-space:nowrap;
+}
+
+.hint{
+  color:#7f8aa2;
+  font-size:13px;
+  margin-top:10px;
+}
+
+.pdfbox{
+  position:fixed;
+  inset:0;
+  background:rgba(4,7,14,.94);
+  z-index:20;
+  padding:10px;
+  display:none;
+}
+
+.pdfbox iframe{
+  width:100%;
+  height:calc(100% - 60px);
+  border:0;
+  border-radius:14px;
+  background:#fff;
+}
+
+.close{
+  height:44px;
+  margin-bottom:8px;
+  background:#1e2a42;
+}
+
+.empty{
+  text-align:center;
+  color:#9aa4bd;
+  padding:30px 10px;
+}
+
+.lock{
+  max-width:480px;
+  margin:90px auto 0;
+}
+
+.logo{
+  font-weight:900;
+  font-size:34px;
+}
+
+.note{
+  font-size:14px;
+  line-height:1.5;
+  color:#8e99b0;
+}
+
+.error-box{
+  margin-top:15px;
+  padding:12px;
+  border-radius:12px;
+  background:#2a1420;
+  border:1px solid #5b2638;
+  color:#ff9aaa;
+  font-size:13px;
+  line-height:1.5;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<main class="wrap">
+
+  <!-- LICENCE SCREEN -->
+  <section id="lock" class="lock">
+
+    <div class="logo">
+      Ayan Product Catalogue
+    </div>
+
+    <div class="sub">
+      Paragon • April 2026
+    </div>
+
+    <div class="card">
+
+      <h2>
+        Enter licence key
+      </h2>
+
+      <p class="note">
+        A valid licence is required before the catalogue can be opened.
+      </p>
+
+      <input
+        id="key"
+        autocomplete="off"
+        placeholder="Enter licence key"
+      >
+
+      <button
+        id="activate"
+        style="margin-top:12px"
+      >
+        Unlock Catalogue
+      </button>
+
+      <div
+        id="lockStatus"
+        class="status"
+      ></div>
+
+      <div
+        id="errorBox"
+        class="error-box"
+      ></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- MAIN CATALOGUE -->
+  <section
+    id="app"
+    class="hidden"
+  >
+
+    <div class="top">
+
+      <div>
+
+        <div class="brand">
+          Ayan Product Catalogue
+        </div>
+
+        <div class="sub">
+          Paragon • April 2026
+        </div>
+
+      </div>
+
+      <div
+        class="pill"
+        id="licencePill"
+      >
+        Licensed
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <input
+        id="search"
+        class="search"
+        inputmode="text"
+        autocomplete="off"
+        placeholder="Search Article No. e.g. 2734"
+      >
+
+      <div class="hint">
+        Article number search → exact catalogue page
+      </div>
+
+      <div id="results"></div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- PDF VIEWER -->
+<div
+  id="pdfbox"
+  class="pdfbox"
+>
+
+  <button
+    class="close"
+    id="close"
+  >
+    ← Back to search
+  </button>
+
+  <iframe
+    id="pdf"
+    title="Product Catalogue"
+  ></iframe>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   BASIC SETTINGS
+========================================================= */
+
+const $ = (id) => document.getElementById(id);
+
+
+/* =========================================================
+   LICENCE STORAGE
+========================================================= */
+
+const KEY =
+  "ayan_catalogue_key_v1";
+
+const DEVICE =
+  "ayan_catalogue_device_v1";
+
+
+/* =========================================================
+   LICENCE SERVER
+========================================================= */
+
+const API_BASE =
+  "https://ayan-license-server.onrender.com";
+
+
+/* =========================================================
+   IMPORTANT:
+   Use the current GitHub Pages folder as the base.
+   This makes article-index.json and catalogue.pdf
+   work correctly even when the repository is hosted
+   under /ayan-paragon-catalogue/
+========================================================= */
+
+const BASE_URL =
+  new URL("./", window.location.href).href;
+
+
+/* =========================================================
+   DEVICE ID
+========================================================= */
+
+let device =
+  localStorage.getItem(DEVICE);
+
+if(!device){
+
+  if(
+    window.crypto &&
+    crypto.randomUUID
+  ){
+
+    device =
+      crypto.randomUUID();
+
+  }else{
+
+    device =
+      Date.now() +
+      "-" +
+      Math.random()
+        .toString(36)
+        .substring(2);
+
+  }
+
+  localStorage.setItem(
+    DEVICE,
+    device
+  );
+
 }
 
 
-async function validateSaved(){const k=localStorage.getItem(KEY);if(!k)return showLock();try{const d=await api('/api/license/validate',{method:'POST',body:JSON.stringify({key:k,deviceId:device})});showApp(d.license)}catch(e){localStorage.removeItem(KEY);showLock('Licence required / '+e.message,true)}}
-$('activate').onclick=async()=>{const k=$('key').value.trim();if(!k)return showLock('Please enter your licence key.',true);$('activate').disabled=true;showLock('Checking licence…');try{const d=await api('/api/license/activate',{method:'POST',body:JSON.stringify({key:k,deviceId:device})});localStorage.setItem(KEY,k.toUpperCase());showApp(d.license);$('search').focus()}catch(e){showLock(e.message.replaceAll('_',' '),true)}finally{$('activate').disabled=false}};
-$('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('activate').click()});
-let index=null; async function loadIndex(){index=await fetch('/article-index.json',{cache:'no-store'}).then(r=>r.json())}
-function search(q){q=q.trim().toUpperCase();const box=$('results');box.innerHTML='';if(!q)return;const hits=[];for(const [article,entries] of Object.entries(index)){if(article.toUpperCase()===q || article.toUpperCase().includes(q)){for(const e of entries)hits.push(e)}}hits.sort((a,b)=>a.page-b.page);if(!hits.length){box.innerHTML='<div class="empty">Article No. nahi mila.</div>';return}for(const h of hits){const d=document.createElement('div');d.className='result';d.innerHTML=`<div><b>${h.family} ${h.article}</b><div class="meta">Catalogue page ${h.page}</div></div><button class="open">Open page</button>`;d.querySelector('button').onclick=()=>openPage(h.page);box.appendChild(d)}}
-function openPage(page){$('pdf').src='/catalogue.pdf#page='+page;$('pdfbox').style.display='block'}$('close').onclick=()=>{$('pdfbox').style.display='none';$('pdf').src='about:blank'};
-(async()=>{try{await loadIndex();await validateSaved()}catch(e){showLock('Catalogue index load failed.',true)}})(); $('search').addEventListener('input',e=>search(e.target.value));
-</script></body></html>
+/* =========================================================
+   SCREEN HELPERS
+========================================================= */
+
+function showLock(
+  msg = "",
+  err = false
+){
+
+  $("lock")
+    .classList
+    .remove("hidden");
+
+  $("app")
+    .classList
+    .add("hidden");
+
+  $("lockStatus")
+    .textContent = msg;
+
+  $("lockStatus")
+    .className =
+      "status " +
+      (err ? "err" : "");
+
+}
+
+
+function showApp(lic){
+
+  $("lock")
+    .classList
+    .add("hidden");
+
+  $("app")
+    .classList
+    .remove("hidden");
+
+  $("licencePill")
+    .textContent = "Licensed";
+
+}
+
+
+/* =========================================================
+   ERROR MESSAGE
+========================================================= */
+
+function showError(msg){
+
+  const box =
+    $("errorBox");
+
+  box.textContent =
+    msg || "";
+
+  box.style.display =
+    msg ? "block" : "none";
+
+}
+
+
+/* =========================================================
+   API FUNCTION
+========================================================= */
+
+async function api(
+  path,
+  opts = {}
+){
+
+  const response =
+    await fetch(
+      API_BASE + path,
+      {
+        method:
+          opts.method || "GET",
+
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          opts.body
+      }
+    );
+
+
+  let data = {};
+
+  try{
+
+    data =
+      await response.json();
+
+  }catch(e){
+
+    data = {};
+
+  }
+
+
+  if(!response.ok){
+
+    throw new Error(
+      data.error ||
+      "Request failed"
+    );
+
+  }
+
+
+  return data;
+
+}
+
+
+/* =========================================================
+   VALIDATE SAVED LICENCE
+========================================================= */
+
+async function validateSaved(){
+
+  const savedKey =
+    localStorage.getItem(KEY);
+
+
+  if(!savedKey){
+
+    showLock();
+
+    return;
+
+  }
+
+
+  try{
+
+    showLock(
+      "Checking licence..."
+    );
+
+
+    const data =
+      await api(
+        "/api/license/validate",
+        {
+          method:"POST",
+
+          body:
+            JSON.stringify({
+              key:
+                savedKey,
+
+              deviceId:
+                device
+            })
+        }
+      );
+
+
+    showApp(
+      data.license
+    );
+
+
+  }catch(error){
+
+    localStorage.removeItem(KEY);
+
+    showLock(
+      "Licence required / " +
+      error.message,
+      true
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   ACTIVATE LICENCE
+========================================================= */
+
+$("activate").onclick =
+async function(){
+
+  const key =
+    $("key")
+      .value
+      .trim();
+
+
+  showError();
+
+
+  if(!key){
+
+    showLock(
+      "Please enter your licence key.",
+      true
+    );
+
+    return;
+
+  }
+
+
+  $("activate")
+    .disabled = true;
+
+
+  showLock(
+    "Checking licence..."
+  );
+
+
+  try{
+
+    const data =
+      await api(
+        "/api/license/activate",
+        {
+          method:"POST",
+
+          body:
+            JSON.stringify({
+              key:
+                key,
+
+              deviceId:
+                device
+            })
+        }
+      );
+
+
+    localStorage.setItem(
+      KEY,
+      key.toUpperCase()
+    );
+
+
+    showApp(
+      data.license
+    );
+
+
+    $("search")
+      .focus();
+
+
+  }catch(error){
+
+    showLock(
+      error.message
+        .replaceAll(
+          "_",
+          " "
+        ),
+      true
+    );
+
+
+  }finally{
+
+    $("activate")
+      .disabled = false;
+
+  }
+
+};
+
+
+/* =========================================================
+   ENTER KEY
+========================================================= */
+
+$("key")
+  .addEventListener(
+    "keydown",
+    function(event){
+
+      if(
+        event.key === "Enter"
+      ){
+
+        $("activate")
+          .click();
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   CATALOGUE INDEX
+========================================================= */
+
+let index = null;
+
+
+async function loadIndex(){
+
+  const indexURL =
+    new URL(
+      "article-index.json",
+      BASE_URL
+    );
+
+
+  const response =
+    await fetch(
+      indexURL.href,
+      {
+        cache:"no-store"
+      }
+    );
+
+
+  if(!response.ok){
+
+    throw new Error(
+      "article-index.json not found"
+    );
+
+  }
+
+
+  index =
+    await response.json();
+
+
+  if(
+    !index ||
+    typeof index !== "object"
+  ){
+
+    throw new Error(
+      "Invalid article index"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+function search(query){
+
+  if(!index){
+
+    return;
+
+  }
+
+
+  const q =
+    query
+      .trim()
+      .toUpperCase();
+
+
+  const box =
+    $("results");
+
+
+  box.innerHTML = "";
+
+
+  if(!q){
+
+    return;
+
+  }
+
+
+  const hits = [];
+
+
+  for(
+    const [
+      article,
+      entries
+    ]
+    of Object.entries(index)
+  ){
+
+    const articleUpper =
+      String(article)
+        .toUpperCase();
+
+
+    if(
+      articleUpper === q ||
+      articleUpper.includes(q)
+    ){
+
+      if(
+        Array.isArray(entries)
+      ){
+
+        for(
+          const entry
+          of entries
+        ){
+
+          hits.push(entry);
+
+        }
+
+      }
+
+    }
+
+  }
+
+
+  hits.sort(
+    (a,b) =>
+      Number(a.page) -
+      Number(b.page)
+  );
+
+
+  if(!hits.length){
+
+    box.innerHTML =
+      '<div class="empty">' +
+      'Article No. nahi mila.' +
+      '</div>';
+
+    return;
+
+  }
+
+
+  for(
+    const hit
+    of hits
+  ){
+
+    const result =
+      document.createElement(
+        "div"
+      );
+
+
+    result.className =
+      "result";
+
+
+    const family =
+      hit.family || "";
+
+
+    const article =
+      hit.article || "";
+
+
+    const page =
+      hit.page || "";
+
+
+    result.innerHTML = `
+
+      <div>
+
+        <b>
+          ${family} ${article}
+        </b>
+
+        <div class="meta">
+          Catalogue page ${page}
+        </div>
+
+      </div>
+
+      <button class="open">
+        Open page
+      </button>
+
+    `;
+
+
+    result
+      .querySelector(
+        ".open"
+      )
+      .onclick =
+        function(){
+
+          openPage(
+            page
+          );
+
+        };
+
+
+    box.appendChild(
+      result
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN PDF PAGE
+========================================================= */
+
+function openPage(page){
+
+  const pdfURL =
+    new URL(
+      "catalogue.pdf",
+      BASE_URL
+    );
+
+
+  pdfURL.hash =
+    "page=" +
+    encodeURIComponent(page);
+
+
+  $("pdf").src =
+    pdfURL.href;
+
+
+  $("pdfbox")
+    .style
+    .display = "block";
+
+}
+
+
+/* =========================================================
+   CLOSE PDF
+========================================================= */
+
+$("close")
+  .onclick =
+  function(){
+
+    $("pdfbox")
+      .style
+      .display = "none";
+
+
+    $("pdf").src =
+      "about:blank";
+
+  };
+
+
+/* =========================================================
+   SEARCH INPUT
+========================================================= */
+
+$("search")
+  .addEventListener(
+    "input",
+    function(event){
+
+      search(
+        event.target.value
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+
+(async function(){
+
+  try{
+
+    /*
+      First load catalogue index.
+    */
+
+    await loadIndex();
+
+
+    /*
+      Then check saved licence.
+    */
+
+    await validateSaved();
+
+
+  }catch(error){
+
+    console.error(
+      "Catalogue startup error:",
+      error
+    );
+
+
+    showLock(
+      "Catalogue index load failed.",
+      true
+    );
+
+
+    showError(
+      error.message
+    );
+
+  }
+
+})();
+
+</script>
+
+</body>
+</html>
